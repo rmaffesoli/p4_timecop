@@ -42,9 +42,6 @@ def get_open_files_dict(server, existing_data=None):
 
     return data_dict
 
-def record_open_file_data(file_data, output_path):
-    write_json(file_data, output_path)
-
 def perform_reverts(server, data_dict):
     results = []
     for file_path in data_dict:    
@@ -113,11 +110,11 @@ def main():
 
     write_log(log_lines, log_path)
 
-    record_open_file_data(open_files, parsed_args.data)
+    write_json(open_files, data_path)
 
     line = '{time}: Auto Unlock Completed.\n'.format(
             time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"))
-    write_log([line], parsed_args.log)
+    write_log([line], log_path)
     print("Auto Unlock Completed.")
 
 if __name__ == "__main__":
