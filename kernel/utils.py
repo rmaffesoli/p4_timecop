@@ -67,7 +67,7 @@ def read_json(json_path):
     return data_dict
 
 def write_log(lines=None, file_path=''):
-    with open(file_path, "w") as outfile:
+    with open(file_path, "a") as outfile:
         outfile.writelines(lines)
 
 def get_file_datetime(file_path, existing_data):

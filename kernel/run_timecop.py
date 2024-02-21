@@ -91,7 +91,7 @@ def main():
 
     log_lines = []
     for file_path in to_be_unlocked:
-        line = '{time}: {file_path} has been force reverted from {user}@{client}.'.format(
+        line = '{time}: {file_path} has been force reverted from {user}@{client}.\n'.format(
             time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"), 
             file_path=file_path,
             user=to_be_unlocked[file_path]['user'], 
@@ -105,7 +105,9 @@ def main():
     write_log(log_lines, parsed_args.log)
 
     record_open_file_data(open_files, parsed_args.data)
-
+    line = '{time}: Auto Unlock Completed.\n'.format(
+            time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"))
+    write_log([line], parsed_args.log)
 
 if __name__ == "__main__":
     main()
