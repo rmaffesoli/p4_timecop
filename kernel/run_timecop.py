@@ -62,32 +62,41 @@ def check_open_files(open_files, time_limit):
 def main():
     parser = ArgumentParser()
     parser.add_argument("-c", "--config", default="../config.json")
-    parser.add_argument("-t", "--timelimit", default="01:00:00:00")
-    parser.add_argument("-d", "--data", default="../data.json")
-    parser.add_argument("-l", "--log", default="../log.txt")
+    parser.add_argument("-t", "--timelimit")
+    parser.add_argument("-d", "--data")
+    parser.add_argument("-l", "--log")
     
     parsed_args = parser.parse_args()
 
     script_dir = os.path.dirname(__file__)
     os.chdir(script_dir)
 
-    print("Connecting to server:")
-    p4_connection = setup_server_connection(
-        **load_server_config(parsed_args.config)
-    )
+    config = load_server_config(parsed_args.config)        
 
-    existing_data = read_json(parsed_args.data)
+    
+    
+    log_path  = config.get('log', "../log.txt")    
+    if parsed_args.log:
+        log_path = parsed_args.log
+
+    data_path  = config.get('data', "../data.json")
+    if parsed_args.data:
+        data_path = parsed_args.data
+    
+    limit_str  = config.get('file_lock_time_limit', "01:00:00:00")
+    if parsed_args.timelimit:
+        limit_str = parsed_args.timelimit
+    time_limit = calc_limit(limit_str)
+
+    existing_data = read_json(data_path)
+
+    print("Connecting to server:")
+    p4_connection = setup_server_connection(**config['server'])
 
     open_files = get_open_files_dict(p4_connection, existing_data)
-    
-    time_limit = calc_limit(parsed_args.timelimit)
-
     to_be_unlocked = check_open_files(open_files, time_limit)
     
-    results = perform_reverts(p4_connection, to_be_unlocked)
-    
-    print(results)
-    
+    perform_reverts(p4_connection, to_be_unlocked)
 
     log_lines = []
     for file_path in to_be_unlocked:
@@ -102,12 +111,14 @@ def main():
         if file_path in open_files:
             del open_files[file_path]
 
-    write_log(log_lines, parsed_args.log)
+    write_log(log_lines, log_path)
 
     record_open_file_data(open_files, parsed_args.data)
+
     line = '{time}: Auto Unlock Completed.\n'.format(
             time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"))
     write_log([line], parsed_args.log)
+    print("Auto Unlock Completed.")
 
 if __name__ == "__main__":
     main()

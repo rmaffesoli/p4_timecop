@@ -11,7 +11,7 @@ def load_server_config(config_path="config.json"):
     return read_json(config_path)
 
 
-def setup_server_connection(port=None, user=None, password=None, charset="none", file_lock_time_limit="01:00:00:00"):
+def setup_server_connection(port=None, user=None, password=None, charset="none"):
     if not (port and user):
         print("missing needed variable")
         print("port:", port)
