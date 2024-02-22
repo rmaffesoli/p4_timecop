@@ -1,4 +1,4 @@
-# p4_timecop [![Coverage Status](https://coveralls.io/repos/github/rmaffesoli/p4_templates/badge.svg?branch=main)](https://coveralls.io/github/rmaffesoli/p4_templates?branch=main)
+# p4_timecop [![Coverage Status](https://coveralls.io/repos/github/rmaffesoli/p4_timecop/badge.svg?branch=main)](https://coveralls.io/github/rmaffesoli/p4_timecop?branch=main)
 A utility to automatic unlock files that have been locked longer than a set duration.
 This can run server or client side, wherever you prefer.
 
