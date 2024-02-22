@@ -6,8 +6,12 @@ from p4_timecop.kernel.utils import (
     set_default,
     write_json,
     read_json,
+    write_log,
+    get_file_datetime,
+    calc_limit
 )
 
+import datetime
 
 class MockP4(object):
     def __init__(
@@ -26,6 +30,12 @@ class MockP4(object):
     def run_login(self):
         self.run_login_called = True
 
+
+class mydatetime(datetime.datetime):
+    @classmethod
+    def now(cls):
+        return datetime.datetime.strptime("Tue Feb 20 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
+    
 
 def test_load_server_config(mocker):
     m_read_json = mocker.patch("p4_timecop.kernel.utils.read_json")
@@ -62,16 +72,21 @@ def test_setup_server_connection(
 
 
 def test_set_default():
+    expected_date = "Tue Feb 20 19:18:25 2024"
     test_set = {1, 2, 3}
     test_list = [1, 2, 3]
-
+    test_date = datetime.datetime.strptime(expected_date, "%a %b %d %H:%M:%S %Y")
+    
     set_result = set_default(test_set)
     list_result = set_default(test_list)
+    date_result = set_default(test_date)
 
     assert isinstance(set_result, list)
     assert isinstance(list_result, list)
+    assert isinstance(date_result, str)
     assert set_result == test_list
     assert list_result == test_list
+    assert date_result == expected_date
 
 
 def test_write_json(mocker):
@@ -102,3 +117,49 @@ def test_read_json(mocker):
 
     m_open.assert_called_once_with("/a/fake/output/path.json")
     m_json_load.assert_called_once_with(m_open.return_value)
+
+def test_write_log(mocker):
+    m_open = mocker.patch(
+        "p4_timecop.kernel.utils.open", mocker.mock_open(read_data="{'fake':'data'}")
+    )
+
+    write_log(lines=['test', 'lines'], file_path='/a/fake/file/path.json')
+
+    open_calls = [
+        mocker.call('/a/fake/file/path.json', 'a'),
+        mocker.call().__enter__(),
+        mocker.call().writelines(['test', 'lines']),
+        mocker.call().__exit__(None, None, None)
+    ]
+
+    m_open.assert_has_calls(open_calls)
+
+@pytest.mark.parametrize(
+    "file_path,expected_result",
+    [
+        ('//a/fake/depot/file/path1.json', "Tue Feb 20 19:18:25 2024"),
+        ('//a/fake/depot/file/path2.json', "Sun Feb 18 19:00:00 2024"),
+    ],
+)
+def test_file_datetime(mocker, file_path, expected_result):
+    mocker.patch('p4_timecop.kernel.utils.datetime', mydatetime)
+    existing_data = {
+        '//a/fake/depot/file/path2.json': {
+            "type": "binary+Fl",
+            "client": "local_lib",
+            "user": "rmaffesoli",
+            "timestamp": "Sun Feb 18 19:00:00 2024"
+        }
+    }
+    
+    result = get_file_datetime(file_path, existing_data)
+    assert isinstance(result, datetime.datetime)
+    assert result.strftime("%a %b %d %H:%M:%S %Y") == expected_result
+
+
+def test_calc_limit(mocker):
+    mocker.patch('p4_timecop.kernel.utils.datetime', mydatetime)
+    expected_result = 'Mon Feb 19 19:18:25 2024'
+    result = calc_limit("1:00:00:00")
+
+    assert result.strftime('%a %b %d %H:%M:%S %Y') == expected_result

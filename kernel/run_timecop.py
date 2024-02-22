@@ -42,6 +42,14 @@ def get_open_files_dict(server, existing_data=None):
 
     return data_dict
 
+def check_open_files(open_files, time_limit):
+    to_do = {}
+    for file_path in open_files:
+        if open_files[file_path]['timestamp'] <= time_limit:
+            to_do[file_path] = open_files[file_path]
+    return to_do
+
+
 def perform_reverts(server, data_dict):
     results = []
     for file_path in data_dict:    
@@ -49,12 +57,6 @@ def perform_reverts(server, data_dict):
         results.append(result)
     return results
 
-def check_open_files(open_files, time_limit):
-    to_do = {}
-    for file_path in open_files:
-        if open_files[file_path]['timestamp'] <= time_limit:
-            to_do[file_path] = open_files[file_path]
-    return to_do
 
 def main():
     parser = ArgumentParser()
@@ -70,13 +72,11 @@ def main():
 
     config = load_server_config(parsed_args.config)        
 
-    
-    
-    log_path  = config.get('log', "../log.txt")    
+    log_path  = config.get('log_filepath', "../log.txt")
     if parsed_args.log:
         log_path = parsed_args.log
 
-    data_path  = config.get('data', "../data.json")
+    data_path  = config.get('data_filepath', "../data.json")
     if parsed_args.data:
         data_path = parsed_args.data
     
