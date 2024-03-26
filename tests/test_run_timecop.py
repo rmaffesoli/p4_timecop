@@ -30,8 +30,6 @@ class MockP4(object):
         self.fetch_group_called = True
         return self.fetch_group_return_value
 
-
-
 class MockArgumentParser(object):
     def __init__(self, args_dict=None):
         self.args_dict = args_dict or {}
@@ -73,32 +71,39 @@ def test_get_open_files_dict(mocker):
     ]
 
     existing_data = {
-        '//an/existing/file/path.txt': {
-            'type': 'binary', 
-            'client': "client", 
-            'user': 'rmaffesoli',
-            'timestamp': "Tue Feb 20 19:18:25 2024"
-        }
+        '//an/existing/file/path.txt': [
+            {
+                'type': 'binary', 
+                'client': "client", 
+                'user': 'rmaffesoli',
+                'timestamp': "Tue Feb 20 19:18:25 2024"
+            }
+        ]
+
     }
     
     expected_result = {
-        '//an/existing/file/path.txt': {
-            'type': 'binary', 
-            'client': "client", 
-            'user': 'rmaffesoli',
-            'timestamp': existing_date
-        },
-        '//a/newly/openedfile/path.txt': {
-            'type': 'binary', 
-            'client': "client", 
-            'user': 'rmaffesoli',
-            'timestamp': existing_date
-        },
+        '//an/existing/file/path.txt': [
+            {
+                'type': 'binary', 
+                'client': "client", 
+                'user': 'rmaffesoli',
+                'timestamp': existing_date
+            },
+        ],
+        '//a/newly/openedfile/path.txt': [
+            {
+                'type': 'binary', 
+                'client': "client", 
+                'user': 'rmaffesoli',
+                'timestamp': existing_date
+            },
+        ]
     }
 
     datetime_calls = [
-        mocker.call('//a/newly/openedfile/path.txt', existing_data),
-        mocker.call('//an/existing/file/path.txt', existing_data)
+        mocker.call('//a/newly/openedfile/path.txt', 'client', 'rmaffesoli', existing_data),
+        mocker.call('//an/existing/file/path.txt', 'client', 'rmaffesoli', existing_data)
     ]
 
     result = get_open_files_dict(server, existing_data=existing_data)
@@ -113,29 +118,34 @@ def test_check_open_files():
     time_limit = datetime.datetime.strptime("Tue Feb 20 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
 
     open_files = {
-        '/a/file/path/to/be/unlocked':
-        {
-            'user': 'user',
-            'timestamp': datetime.datetime.strptime("Sun Feb 18 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
-        },
-        '/a/file/path/to/be/ignored':
-        {
-            'user': 'user',
-            'timestamp': datetime.datetime.strptime("Wed Feb 21 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
-        },
-        '/a/file/path/to/be/ignored2':
-        {
-            'user': 'ignore',
-            'timestamp': datetime.datetime.strptime("Wed Feb 21 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
-        },
+        '/a/file/path/to/be/unlocked': [
+            {
+                'user': 'user',
+                'timestamp': datetime.datetime.strptime("Sun Feb 18 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
+            },
+        ],
+        '/a/file/path/to/be/ignored': [
+            {
+                'user': 'user',
+                'timestamp': datetime.datetime.strptime("Wed Feb 21 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
+            },
+        ],
+        '/a/file/path/to/be/ignored2': [
+            {
+                'user': 'ignore',
+                'timestamp': datetime.datetime.strptime("Wed Feb 21 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
+            },
+        ]
     }
         
     expected_results = {
         '/a/file/path/to/be/unlocked':
-        {
-            'user': 'user',
-            'timestamp': datetime.datetime.strptime("Sun Feb 18 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
-        },
+        [
+            {
+                'user': 'user',
+                'timestamp': datetime.datetime.strptime("Sun Feb 18 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
+            },
+        ]
     }
 
     results = check_open_files(open_files, time_limit, ['ignore'])
@@ -147,7 +157,7 @@ def test_perform_reverts():
     server = MockP4()
     server.run_return_value = 'yup'
     expected_results = ['yup']
-    data_dict = {'/a/fake/file/path.txt': {'client': 'client'}}
+    data_dict = {'/a/fake/file/path.txt': [{'client': 'client'}]}
     
     results = perform_reverts(server, data_dict)
     assert results == expected_results
@@ -167,7 +177,6 @@ def test_gather_ignored_users():
     assert results == expected_results
     assert server.fetch_group_called
     
-
 
 def test_main(mocker):
 
@@ -199,18 +208,22 @@ def test_main(mocker):
     m_read_json = mocker.patch(
         'p4_timecop.kernel.run_timecop.read_json', 
         return_value={
-            '//an/existing/file/path.txt': {
-                'type': 'binary', 
-                'client': "client", 
-                'user': 'rmaffesoli',
-                'timestamp': "Tue Feb 20 19:18:25 2024",
-            },
-            '/a/file/path/to/be/unlocked': {
-                'type': 'binary', 
-                'client': 'client', 
-                'user': 'rmaffesoli', 
-                'timestamp': "Tue Feb 20 19:18:25 2024"
-            }
+            '//an/existing/file/path.txt': [
+                {
+                    'type': 'binary', 
+                    'client': "client", 
+                    'user': 'rmaffesoli',
+                    'timestamp': "Tue Feb 20 19:18:25 2024",
+                },
+            ],
+            '/a/file/path/to/be/unlocked': [
+                {
+                    'type': 'binary', 
+                    'client': 'client', 
+                    'user': 'rmaffesoli', 
+                    'timestamp': "Tue Feb 20 19:18:25 2024"
+                }
+            ]
         }
     )
 
@@ -218,35 +231,43 @@ def test_main(mocker):
     m_get_open_files_dict = mocker.patch(
         'p4_timecop.kernel.run_timecop.get_open_files_dict', 
         return_value={
-            '//an/existing/file/path.txt': {
-                'type': 'binary', 
-                'client': "client", 
-                'user': 'rmaffesoli',
-                'timestamp': existing_date
-            },
-            '//a/newly/openedfile/path.txt': {
-                'type': 'binary', 
-                'client': "client", 
-                'user': 'rmaffesoli',
-                'timestamp': existing_date
-            },
-            '/a/file/path/to/be/unlocked': {
-                'type': 'binary', 
-                'client': 'client', 
-                'user': 'rmaffesoli', 
-                'timestamp': existing_date
-            }
+            '//an/existing/file/path.txt': [
+                {
+                    'type': 'binary', 
+                    'client': "client", 
+                    'user': 'rmaffesoli',
+                    'timestamp': existing_date
+                },
+            ],
+            '//a/newly/openedfile/path.txt': [
+                {
+                    'type': 'binary', 
+                    'client': "client", 
+                    'user': 'rmaffesoli',
+                    'timestamp': existing_date
+                },
+            ],
+            '/a/file/path/to/be/unlocked': [
+                {
+                    'type': 'binary', 
+                    'client': 'client', 
+                    'user': 'rmaffesoli', 
+                    'timestamp': existing_date
+                }
+            ]
         }
     )
     m_check_open_files = mocker.patch(
         'p4_timecop.kernel.run_timecop.check_open_files', 
         return_value={
-            '/a/file/path/to/be/unlocked':{
-                'type': 'binary', 
-                'client': "client", 
-                'user': 'rmaffesoli',
-                'timestamp': existing_date
-            }
+            '/a/file/path/to/be/unlocked': [
+                {
+                    'type': 'binary', 
+                    'client': "client", 
+                    'user': 'rmaffesoli',
+                    'timestamp': existing_date
+                }
+            ]
         }
     )
     m_perform_reverts = mocker.patch('p4_timecop.kernel.run_timecop.perform_reverts')
@@ -271,18 +292,18 @@ def test_main(mocker):
     m_get_open_files_dict.assert_called_once_with(
         m_setup_server_connection.return_value, 
         {
-            '//an/existing/file/path.txt': {
+            '//an/existing/file/path.txt': [{
                 'type': 'binary', 
                 'client': 'client', 
                 'user': 'rmaffesoli', 
                 'timestamp': 'Tue Feb 20 19:18:25 2024', 
-            },
-            '/a/file/path/to/be/unlocked': {
+            }],
+            '/a/file/path/to/be/unlocked': [{
                 'type': 'binary', 
                 'client': 'client', 
                 'user': 'rmaffesoli', 
                 'timestamp': 'Tue Feb 20 19:18:25 2024'
-            }
+            }]
         },
     )
     
@@ -295,12 +316,14 @@ def test_main(mocker):
     m_perform_reverts.assert_called_once_with(
         m_setup_server_connection.return_value,
         {
-            '/a/file/path/to/be/unlocked': {
-                'type': 'binary', 
-                'client': 'client', 
-                'user': 'rmaffesoli', 
-                'timestamp': existing_date
-            }
+            '/a/file/path/to/be/unlocked': [
+                {
+                    'type': 'binary', 
+                    'client': 'client', 
+                    'user': 'rmaffesoli', 
+                    'timestamp': existing_date
+                }
+            ]
         }
     )
 
@@ -308,18 +331,22 @@ def test_main(mocker):
 
     m_write_json.assert_called_once_with(
         {
-            '//an/existing/file/path.txt': {
-                'type': 'binary', 
-                'client': 'client', 
-                'user': 'rmaffesoli', 
-                'timestamp': existing_date
-            }, 
-            '//a/newly/openedfile/path.txt': {
-                'type': 'binary', 
-                'client': 'client', 
-                'user': 'rmaffesoli', 
-                'timestamp': existing_date
-            }
+            '//an/existing/file/path.txt': [
+                {
+                    'type': 'binary', 
+                    'client': 'client', 
+                    'user': 'rmaffesoli', 
+                    'timestamp': existing_date
+                }, 
+            ],
+            '//a/newly/openedfile/path.txt': [
+                {
+                    'type': 'binary', 
+                    'client': 'client', 
+                    'user': 'rmaffesoli', 
+                    'timestamp': existing_date
+                }
+            ]
         }, 
         'a/data/path.json'
     )

@@ -30,34 +30,45 @@ def get_open_files_dict(server, existing_data=None):
         file_type = open_file['type']
         client = open_file['client']
         user = open_file['user']
-        timestamp = get_file_datetime(depot_path, existing_data)
+        timestamp = get_file_datetime(depot_path, client, user, existing_data)
 
-        if depot_path not in data_dict:
-            data_dict[depot_path] = {
+
+        checkout_dict = {
                 'type': file_type,
                 'client': client,
                 'user': user,
                 'timestamp': timestamp
             }
-
+        
+        if depot_path not in data_dict:
+            data_dict[depot_path] = []
+        
+        if checkout_dict not in data_dict[depot_path]:
+            data_dict[depot_path].append(checkout_dict)
+        
     return data_dict
 
 def check_open_files(open_files, time_limit, ignored_users):
     to_do = {}
     for file_path in open_files:
         print(open_files[file_path])
-        if open_files[file_path].get('user', '') in ignored_users:
-                print('skipping check {} due to ignored user {}'.format(file_path, open_files[file_path]['user']))
-        elif open_files[file_path]['timestamp'] <= time_limit:
-            to_do[file_path] = open_files[file_path]
+        for checkout_data in open_files[file_path]:        
+            if checkout_data['user'] in ignored_users:
+                print('skipping check {} due to ignored user {}'.format(file_path, checkout_data['user']))
+            elif checkout_data['timestamp'] <= time_limit:
+                if file_path not in to_do:
+                    to_do[file_path] = []
+                to_do[file_path].append(checkout_data)
+
     return to_do
 
 
 def perform_reverts(server, data_dict):
     results = []
-    for file_path in data_dict:    
-        result = server.run('revert', '-C', data_dict[file_path]['client'], file_path)
-        results.append(result)
+    for file_path in data_dict:
+        for checkout_data in data_dict[file_path]:
+            result = server.run('revert', '-C', checkout_data['client'], file_path)
+            results.append(result)
     return results
 
 
@@ -100,6 +111,11 @@ def main():
     time_limit = calc_limit(limit_str)
 
     existing_data = read_json(data_path)
+    
+    # updating previous data model to accomodate multiple checkouts per depot path
+    for depot_path in existing_data:  
+        if not isinstance(existing_data[depot_path], list):
+            existing_data[depot_path] = [existing_data[depot_path]]
 
     print("Connecting to server:")
     p4_connection = setup_server_connection(**config['server'])
@@ -113,12 +129,13 @@ def main():
 
     log_lines = []
     for file_path in to_be_unlocked:
-        line = '{time}: {file_path} has been force reverted from {user}@{client}.\n'.format(
-            time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"), 
-            file_path=file_path,
-            user=to_be_unlocked[file_path]['user'], 
-            client=to_be_unlocked[file_path]['client']
-        )
+        for checkout_data in to_be_unlocked[file_path]:
+            line = '{time}: {file_path} has been force reverted from {user}@{client}.\n'.format(
+                time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"), 
+                file_path=file_path,
+                user=checkout_data['user'], 
+                client=checkout_data['client']
+            )
 
         log_lines.append(line)
         if file_path in open_files:

@@ -144,15 +144,17 @@ def test_write_log(mocker):
 def test_file_datetime(mocker, file_path, expected_result):
     mocker.patch('p4_timecop.kernel.utils.datetime', mydatetime)
     existing_data = {
-        '//a/fake/depot/file/path2.json': {
-            "type": "binary+Fl",
-            "client": "local_lib",
-            "user": "rmaffesoli",
-            "timestamp": "Sun Feb 18 19:00:00 2024"
-        }
+        '//a/fake/depot/file/path2.json': [
+            {
+                "type": "binary+Fl",
+                "client": "local_lib",
+                "user": "rmaffesoli",
+                "timestamp": "Sun Feb 18 19:00:00 2024"
+            }
+        ]
     }
     
-    result = get_file_datetime(file_path, existing_data)
+    result = get_file_datetime(file_path, 'local_lib', 'rmaffesoli', existing_data)
     assert isinstance(result, datetime.datetime)
     assert result.strftime("%a %b %d %H:%M:%S %Y") == expected_result
 

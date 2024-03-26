@@ -72,11 +72,12 @@ def write_log(lines=None, file_path=''):
         outfile.writelines(lines)
 
 
-def get_file_datetime(file_path, existing_data):
-    if file_path in existing_data:
-        return datetime.strptime(existing_data[file_path]['timestamp'], "%a %b %d %H:%M:%S %Y")
-    else:
-        return datetime.now()
+def get_file_datetime(file_path, client, user, existing_data):
+
+    for checkout_data in existing_data.get(file_path, []):
+        if checkout_data['client'] == client and checkout_data['user'] == user:
+            return datetime.strptime(checkout_data['timestamp'], "%a %b %d %H:%M:%S %Y")
+    return datetime.now()
 
 
 def calc_limit(time_limit):
