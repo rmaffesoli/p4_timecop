@@ -207,7 +207,7 @@ def test_main(mocker):
 
     m_read_json = mocker.patch(
         'p4_timecop.kernel.run_timecop.read_json', 
-        return_value={
+        return_value= {  
             '//an/existing/file/path.txt': [
                 {
                     'type': 'binary', 
@@ -216,14 +216,14 @@ def test_main(mocker):
                     'timestamp': "Tue Feb 20 19:18:25 2024",
                 },
             ],
-            '/a/file/path/to/be/unlocked': [
+            '/a/file/path/to/be/unlocked': # return value stored in old data format style to test upgrade functionality
                 {
                     'type': 'binary', 
                     'client': 'client', 
                     'user': 'rmaffesoli', 
                     'timestamp': "Tue Feb 20 19:18:25 2024"
                 }
-            ]
+            
         }
     )
 
