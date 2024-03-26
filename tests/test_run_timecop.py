@@ -5,6 +5,7 @@ from p4_timecop.kernel.run_timecop import (
     get_open_files_dict,
     perform_reverts,
     check_open_files,
+    gather_ignored_users,
     main,
 )
 
@@ -18,10 +19,17 @@ class MockP4(object):
     ):
         self.run_called = False
         self.run_return_value = None
+        self.fetch_group_called = False
+        self.fetch_group_return_value = None
 
     def run(self, *args):
         self.run_called = True
         return self.run_return_value
+    
+    def fetch_group(self, *args):
+        self.fetch_group_called = True
+        return self.fetch_group_return_value
+
 
 
 class MockArgumentParser(object):
@@ -107,10 +115,17 @@ def test_check_open_files():
     open_files = {
         '/a/file/path/to/be/unlocked':
         {
+            'user': 'user',
             'timestamp': datetime.datetime.strptime("Sun Feb 18 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
         },
         '/a/file/path/to/be/ignored':
         {
+            'user': 'user',
+            'timestamp': datetime.datetime.strptime("Wed Feb 21 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
+        },
+        '/a/file/path/to/be/ignored2':
+        {
+            'user': 'ignore',
             'timestamp': datetime.datetime.strptime("Wed Feb 21 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
         },
     }
@@ -118,11 +133,12 @@ def test_check_open_files():
     expected_results = {
         '/a/file/path/to/be/unlocked':
         {
+            'user': 'user',
             'timestamp': datetime.datetime.strptime("Sun Feb 18 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
         },
     }
 
-    results = check_open_files(open_files, time_limit)
+    results = check_open_files(open_files, time_limit, ['ignore'])
 
     assert results == expected_results
 
@@ -136,6 +152,22 @@ def test_perform_reverts():
     results = perform_reverts(server, data_dict)
     assert results == expected_results
     assert server.run_called == True
+
+
+def test_gather_ignored_users():
+    server = MockP4()
+    server.fetch_group_return_value = {'Users': {'group_member'}}
+    config = {
+        'ignored_usernames': ['single_user'],
+        'ignored_groupnames': ['group_name']
+    }
+    expected_results = {'single_user', 'group_member'}
+    results = gather_ignored_users(server, config)
+    
+    assert results == expected_results
+    assert server.fetch_group_called
+    
+
 
 def test_main(mocker):
 
@@ -251,12 +283,13 @@ def test_main(mocker):
                 'user': 'rmaffesoli', 
                 'timestamp': 'Tue Feb 20 19:18:25 2024'
             }
-        }
+        },
     )
     
     m_check_open_files.assert_called_once_with(
         m_get_open_files_dict.return_value, 
-        existing_date
+        existing_date,
+        set()
     )
 
     m_perform_reverts.assert_called_once_with(

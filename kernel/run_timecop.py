@@ -42,10 +42,13 @@ def get_open_files_dict(server, existing_data=None):
 
     return data_dict
 
-def check_open_files(open_files, time_limit):
+def check_open_files(open_files, time_limit, ignored_users):
     to_do = {}
     for file_path in open_files:
-        if open_files[file_path]['timestamp'] <= time_limit:
+        print(open_files[file_path])
+        if open_files[file_path].get('user', '') in ignored_users:
+                print('skipping check {} due to ignored user {}'.format(file_path, open_files[file_path]['user']))
+        elif open_files[file_path]['timestamp'] <= time_limit:
             to_do[file_path] = open_files[file_path]
     return to_do
 
@@ -56,6 +59,17 @@ def perform_reverts(server, data_dict):
         result = server.run('revert', '-C', data_dict[file_path]['client'], file_path)
         results.append(result)
     return results
+
+
+def gather_ignored_users(server, config):
+    ignored_usernames = set(config.get('ignored_usernames', []))
+
+    for group_name in config.get('ignored_groupnames', []):
+        group_spec = server.fetch_group(group_name)
+        group_users = set(group_spec['Users'])
+        ignored_usernames = ignored_usernames.union(group_users)
+
+    return ignored_usernames
 
 
 def main():
@@ -90,8 +104,10 @@ def main():
     print("Connecting to server:")
     p4_connection = setup_server_connection(**config['server'])
 
+    ignored_users = gather_ignored_users(server=p4_connection, config=config)
+    
     open_files = get_open_files_dict(p4_connection, existing_data)
-    to_be_unlocked = check_open_files(open_files, time_limit)
+    to_be_unlocked = check_open_files(open_files, time_limit, ignored_users)
     
     perform_reverts(p4_connection, to_be_unlocked)
 
@@ -116,6 +132,7 @@ def main():
             time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"))
     write_log([line], log_path)
     print("Auto Unlock Completed.")
+
 
 if __name__ == "__main__":
     main()

@@ -32,6 +32,9 @@ While you can run this script manually, it's more expected that you'll be runnin
 Within the config file you can define the server connection you're trying to make. if no password is provided the system will attempt to use any existing tickets for the given user that are on the local machine.
 
 The `file_lock_time_limit` value is in a `Day:Hour:Minute:Second` format with the default value of 1 day used if noting is provided.
+
+If you'd prefer to have certain users or groups be exept from the unlocking procedures you can define with users/groups are to be skipped in the config file as well. 
+
 ```
 {
     "server":{
@@ -42,7 +45,9 @@ The `file_lock_time_limit` value is in a `Day:Hour:Minute:Second` format with th
     },
     "file_lock_time_limit": "01:00:00:00",
     "log_filepath": "../log.txt",
-    "data_filepath": "../data.json"
+    "data_filepath": "../data.json",
+    "ignored_usernames": ["username"],
+    "ignored_groupnames": ["groupname"]
 }
 
 ```

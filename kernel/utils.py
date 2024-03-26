@@ -66,16 +66,19 @@ def read_json(json_path):
         data_dict = json.load(json_file)
     return data_dict
 
+
 def write_log(lines=None, file_path=''):
     with open(file_path, "a") as outfile:
         outfile.writelines(lines)
+
 
 def get_file_datetime(file_path, existing_data):
     if file_path in existing_data:
         return datetime.strptime(existing_data[file_path]['timestamp'], "%a %b %d %H:%M:%S %Y")
     else:
         return datetime.now()
-    
+
+
 def calc_limit(time_limit):
     now = datetime.now()
     days, hours, minutes, seconds = time_limit.split(':')
