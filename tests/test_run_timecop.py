@@ -188,15 +188,19 @@ def test_main(mocker):
     m_load_server_config = mocker.patch(
         'p4_timecop.kernel.run_timecop.load_server_config', 
         return_value={
-            "server":{
-                "port": "ssl:helix:1666",
-                "user": "rmaffesoli",
-                "password": None,
-                "charset": "none"
-            },
-            "file_lock_time_limit": "01:00:00:00",
-            "log_filepath": "../log.txt",
-            "data_filepath": "../data.json"
+            "servers": {
+                "local": {
+                    "server":{
+                        "port": "ssl:helix:1666",
+                        "user": "rmaffesoli",
+                        "password": None,
+                        "charset": "none"
+                    },
+                    "file_lock_time_limit": "01:00:00:00",
+                    "log_filepath": "../log.txt",
+                    "data_filepath": "../data.json"
+                }
+            }
         }
     )
 

@@ -93,6 +93,7 @@ def test_write_json(mocker):
     m_open = mocker.patch(
         "p4_timecop.kernel.utils.open", mocker.mock_open(read_data="{'fake':'data'}")
     )
+
     m_json_dump = mocker.patch("p4_timecop.kernel.utils.json.dump")
 
     write_json({"fake": "data"}, "/a/fake/output/path.json")
@@ -103,7 +104,7 @@ def test_write_json(mocker):
         m_open.return_value,
         default=set_default,
         indent=4,
-        sort_keys=False,
+        sort_keys=True,
     )
 
 
@@ -112,11 +113,13 @@ def test_read_json(mocker):
         "p4_timecop.kernel.utils.open", mocker.mock_open(read_data="{'fake':'data'}")
     )
     m_json_load = mocker.patch("p4_timecop.kernel.utils.json.load", return_value= {'fake':'data'})
-
+    m_os_path_exists = mocker.patch("p4_timecop.kernel.utils.os.path.exists", return_value=True)
     read_json("/a/fake/output/path.json")
 
+    m_os_path_exists.assert_called_once_with("/a/fake/output/path.json")
     m_open.assert_called_once_with("/a/fake/output/path.json")
     m_json_load.assert_called_once_with(m_open.return_value)
+
 
 def test_write_log(mocker):
     m_open = mocker.patch(
@@ -133,6 +136,7 @@ def test_write_log(mocker):
     ]
 
     m_open.assert_has_calls(open_calls)
+
 
 @pytest.mark.parametrize(
     "file_path,expected_result",
