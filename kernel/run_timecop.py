@@ -6,6 +6,7 @@ from __future__ import print_function
 
 from argparse import ArgumentParser
 import os
+import re
 from datetime import datetime
 
 from p4_timecop.kernel.utils import (
@@ -51,7 +52,6 @@ def get_open_files_dict(server, existing_data=None):
 def check_open_files(open_files, time_limit, ignored_users):
     to_do = {}
     for file_path in open_files:
-        print(open_files[file_path])
         for checkout_data in open_files[file_path]:        
             if checkout_data['user'] in ignored_users:
                 print('skipping check {} due to ignored user {}'.format(file_path, checkout_data['user']))
@@ -81,6 +81,26 @@ def gather_ignored_users(server, config):
         ignored_usernames = ignored_usernames.union(group_users)
 
     return ignored_usernames
+
+
+def apply_filetype_filter(to_be_unlocked, filetype_filter):
+    to_remove = set()
+    for file_path in to_be_unlocked:
+        filtered_list = []
+
+        for checkout_data in to_be_unlocked[file_path]:
+            if re.search(filetype_filter, checkout_data['type']):
+                filtered_list.append(checkout_data)
+        to_be_unlocked[file_path] = filtered_list
+        
+        if not filtered_list:
+            to_remove.add(file_path)
+
+    
+    for file_path in to_remove:
+        del to_be_unlocked[file_path]
+
+    return to_be_unlocked
 
 
 def main():
@@ -118,13 +138,17 @@ def main():
             if not isinstance(existing_data[depot_path], list):
                 existing_data[depot_path] = [existing_data[depot_path]]
 
-        print("Connecting to server:")
+        print("Connecting to server: {}".format(server_name))
         p4_connection = setup_server_connection(**server_values['server'])
 
         ignored_users = gather_ignored_users(server=p4_connection, config=server_values)
         
         open_files = get_open_files_dict(p4_connection, existing_data)
         to_be_unlocked = check_open_files(open_files, time_limit, ignored_users)
+        
+        filetype_filter = server_values.get("filetype_filter", None)
+        if filetype_filter:
+            to_be_unlocked = apply_filetype_filter(to_be_unlocked, filetype_filter)
         
         perform_reverts(p4_connection, to_be_unlocked)
 

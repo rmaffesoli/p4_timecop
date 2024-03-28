@@ -35,19 +35,27 @@ The `file_lock_time_limit` value is in a `Day:Hour:Minute:Second` format with th
 
 If you'd prefer to have certain users or groups be exept from the unlocking procedures you can define with users/groups are to be skipped in the config file as well. 
 
+The filetype_filter is a regex filter to be defined if desired, the default woll only unlock exclusive checkout filetypes (+l). Remove this value if you would prefer it to apply to all file types on the server.
+
+
 ```
 {
-    "server":{
-        "port": "ssl:helix:1666",
-    "user": "rmaffesoli",
-    "password": null,
-    "charset": "none"
-    },
-    "file_lock_time_limit": "01:00:00:00",
-    "log_filepath": "../log.txt",
-    "data_filepath": "../data.json",
-    "ignored_usernames": ["username"],
-    "ignored_groupnames": ["groupname"]
+    "servers":{ 
+        "local": {
+            "server":{
+                "port": "ssl:helix:1666",
+                "user": "rmaffesoli",
+                "password": null,
+                "charset": "none"
+            },
+            "file_lock_time_limit": "01:00:00:00",
+            "log_filepath": "../log.txt",
+            "data_filepath": "../data.json",
+            "ignored_usernames": ["username"],
+            "ignored_groupnames": ["groupname"],
+            "filetype_filter": "\\+[^l]*l"
+        }
+    }
 }
 
 ```
@@ -64,12 +72,14 @@ Tue Feb 20 20:25:00 2024: Auto Unlock Completed.
 Upon the script running, it will first load the previous open data that was gathered at the time of the last run.
 ```
 {
-    "//demo_interiors_stream/library/mainline/library.fbx": {
-        "type": "binary",
-        "client": "local_lib",
-        "user": "rmaffesoli",
-        "timestamp": "Tue Feb 20 19:18:25 2024"
-    },
+    "//demo_interiors_stream/library/mainline/library.fbx": [
+        {
+            "type": "binary",
+            "client": "local_lib",
+            "user": "rmaffesoli",
+            "timestamp": "Tue Feb 20 19:18:25 2024"
+        }
+    ]
 }
 ```
 

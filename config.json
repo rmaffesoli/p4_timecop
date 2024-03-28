@@ -11,6 +11,7 @@
             "file_lock_time_limit": "01:00:00:00",
             "log_filepath": "E:/p4_timecop_data/local_log.txt",
             "data_filepath": "E:/p4_timecop_data/local_data.json",
+            "filetype_filter": "\\+[^l]*l",
             "ignored_usernames": [],
             "ignored_groupnames": []
         }

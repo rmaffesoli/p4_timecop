@@ -6,6 +6,7 @@ from p4_timecop.kernel.run_timecop import (
     perform_reverts,
     check_open_files,
     gather_ignored_users,
+    apply_filetype_filter,
     main,
 )
 
@@ -176,7 +177,68 @@ def test_gather_ignored_users():
     
     assert results == expected_results
     assert server.fetch_group_called
-    
+
+
+def test_apply_filetype_filter():
+    existing_date = datetime.datetime.strptime("Tue Feb 20 19:18:25 2024", "%a %b %d %H:%M:%S %Y")
+    to_be_unlocked = {
+        '//an/existing/file/to_be_unlocked_binary.txt': [
+            {
+                'type': 'binary+l', 
+                'client': "client", 
+                'user': 'rmaffesoli',
+                'timestamp': existing_date
+            },
+        ],
+        '//a/newly/openedfile/to_be_filtered_binary.txt': [
+            {
+                'type': 'binary', 
+                'client': "client", 
+                'user': 'rmaffesoli',
+                'timestamp': existing_date
+            },
+        ],
+        '//a/newly/openedfile/to_be_filtered_text.txt': [
+            {
+                'type': 'text', 
+                'client': "client", 
+                'user': 'rmaffesoli',
+                'timestamp': existing_date
+            },
+        ],
+        '//a/newly/openedfile/to_be_unlocked_text.txt': [
+            {
+                'type': 'text+l', 
+                'client': "client", 
+                'user': 'rmaffesoli',
+                'timestamp': existing_date
+            },
+        ]
+    }
+    pattern = "\\+[^l]*l"
+
+    expected_results = {
+        '//a/newly/openedfile/to_be_unlocked_text.txt': [
+            {
+                'client': 'client', 
+                'timestamp': datetime.datetime(2024, 2, 20, 19, 18, 25), 
+                'type': 'text+l', 
+                'user': 'rmaffesoli'
+            }
+        ], 
+        '//an/existing/file/to_be_unlocked_binary.txt': [
+            {
+                'client': 'client', 
+                'timestamp': datetime.datetime(2024, 2, 20, 19, 18, 25), 
+                'type': 'binary+l', 
+                'user': 'rmaffesoli'
+            }
+        ]
+    }
+
+    results = apply_filetype_filter(to_be_unlocked, pattern)
+    assert results == expected_results
+
 
 def test_main(mocker):
 
@@ -198,7 +260,8 @@ def test_main(mocker):
                     },
                     "file_lock_time_limit": "01:00:00:00",
                     "log_filepath": "../log.txt",
-                    "data_filepath": "../data.json"
+                    "data_filepath": "../data.json",
+                    "filetype_filter": "\\+[^l]*l"
                 }
             }
         }
@@ -214,7 +277,7 @@ def test_main(mocker):
         return_value= {  
             '//an/existing/file/path.txt': [
                 {
-                    'type': 'binary', 
+                    'type': 'binary+l', 
                     'client': "client", 
                     'user': 'rmaffesoli',
                     'timestamp': "Tue Feb 20 19:18:25 2024",
@@ -222,7 +285,7 @@ def test_main(mocker):
             ],
             '/a/file/path/to/be/unlocked': # return value stored in old data format style to test upgrade functionality
                 {
-                    'type': 'binary', 
+                    'type': 'binary+l', 
                     'client': 'client', 
                     'user': 'rmaffesoli', 
                     'timestamp': "Tue Feb 20 19:18:25 2024"
@@ -237,7 +300,7 @@ def test_main(mocker):
         return_value={
             '//an/existing/file/path.txt': [
                 {
-                    'type': 'binary', 
+                    'type': 'binary+l', 
                     'client': "client", 
                     'user': 'rmaffesoli',
                     'timestamp': existing_date
@@ -245,7 +308,7 @@ def test_main(mocker):
             ],
             '//a/newly/openedfile/path.txt': [
                 {
-                    'type': 'binary', 
+                    'type': 'binary+l', 
                     'client': "client", 
                     'user': 'rmaffesoli',
                     'timestamp': existing_date
@@ -253,11 +316,19 @@ def test_main(mocker):
             ],
             '/a/file/path/to/be/unlocked': [
                 {
+                    'type': 'binary+l', 
+                    'client': 'client', 
+                    'user': 'rmaffesoli', 
+                    'timestamp': existing_date
+                },
+            ],
+            '/a/file/path/to/be/ignored': [
+                {
                     'type': 'binary', 
                     'client': 'client', 
                     'user': 'rmaffesoli', 
                     'timestamp': existing_date
-                }
+                },
             ]
         }
     )
@@ -266,7 +337,7 @@ def test_main(mocker):
         return_value={
             '/a/file/path/to/be/unlocked': [
                 {
-                    'type': 'binary', 
+                    'type': 'binary+l', 
                     'client': "client", 
                     'user': 'rmaffesoli',
                     'timestamp': existing_date
@@ -297,13 +368,13 @@ def test_main(mocker):
         m_setup_server_connection.return_value, 
         {
             '//an/existing/file/path.txt': [{
-                'type': 'binary', 
+                'type': 'binary+l', 
                 'client': 'client', 
                 'user': 'rmaffesoli', 
                 'timestamp': 'Tue Feb 20 19:18:25 2024', 
             }],
             '/a/file/path/to/be/unlocked': [{
-                'type': 'binary', 
+                'type': 'binary+l', 
                 'client': 'client', 
                 'user': 'rmaffesoli', 
                 'timestamp': 'Tue Feb 20 19:18:25 2024'
@@ -322,7 +393,7 @@ def test_main(mocker):
         {
             '/a/file/path/to/be/unlocked': [
                 {
-                    'type': 'binary', 
+                    'type': 'binary+l', 
                     'client': 'client', 
                     'user': 'rmaffesoli', 
                     'timestamp': existing_date
@@ -337,7 +408,7 @@ def test_main(mocker):
         {
             '//an/existing/file/path.txt': [
                 {
-                    'type': 'binary', 
+                    'type': 'binary+l', 
                     'client': 'client', 
                     'user': 'rmaffesoli', 
                     'timestamp': existing_date
@@ -345,11 +416,19 @@ def test_main(mocker):
             ],
             '//a/newly/openedfile/path.txt': [
                 {
-                    'type': 'binary', 
+                    'type': 'binary+l', 
                     'client': 'client', 
                     'user': 'rmaffesoli', 
                     'timestamp': existing_date
                 }
+            ],
+            '/a/file/path/to/be/ignored': [
+                {
+                    'type': 'binary', 
+                    'client': 'client', 
+                    'user': 'rmaffesoli', 
+                    'timestamp': existing_date
+                },
             ]
         }, 
         'a/data/path.json'
