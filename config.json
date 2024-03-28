@@ -1,6 +1,6 @@
 {
     "servers":{
-        "local": {
+        "commit": {
 
             "server":{
                 "port": "ssl:helix:1666",
@@ -9,8 +9,8 @@
                 "charset": "none"
             },
             "file_lock_time_limit": "01:00:00:00",
-            "log_filepath": "E:/p4_timecop_data/local_log.txt",
-            "data_filepath": "E:/p4_timecop_data/local_data.json",
+            "log_filepath": "../log.txt",
+            "data_filepath": "../data.json",
             "filetype_filter": "\\+[^l]*l",
             "ignored_usernames": [],
             "ignored_groupnames": []
