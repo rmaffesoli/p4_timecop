@@ -97,58 +97,59 @@ def main():
 
     config = load_server_config(parsed_args.config)        
 
-    log_path  = config.get('log_filepath', "../log.txt")
-    if parsed_args.log:
-        log_path = parsed_args.log
+    for server_name, server_values in config.get("servers", {}).items():
+        log_path  = server_values.get('log_filepath', "../log.txt")
+        if parsed_args.log:
+            log_path = parsed_args.log
 
-    data_path  = config.get('data_filepath', "../data.json")
-    if parsed_args.data:
-        data_path = parsed_args.data
-    
-    limit_str  = config.get('file_lock_time_limit', "01:00:00:00")
-    if parsed_args.timelimit:
-        limit_str = parsed_args.timelimit
-    time_limit = calc_limit(limit_str)
+        data_path  = server_values.get('data_filepath', "../data.json")
+        if parsed_args.data:
+            data_path = parsed_args.data
+        
+        limit_str  = server_values.get('file_lock_time_limit', "01:00:00:00")
+        if parsed_args.timelimit:
+            limit_str = parsed_args.timelimit
+        time_limit = calc_limit(limit_str)
 
-    existing_data = read_json(data_path)
-    
-    # updating previous data model to accomodate multiple checkouts per depot path
-    for depot_path in existing_data:  
-        if not isinstance(existing_data[depot_path], list):
-            existing_data[depot_path] = [existing_data[depot_path]]
+        existing_data = read_json(data_path)
+        
+        # updating previous data model to accomodate multiple checkouts per depot path
+        for depot_path in existing_data:  
+            if not isinstance(existing_data[depot_path], list):
+                existing_data[depot_path] = [existing_data[depot_path]]
 
-    print("Connecting to server:")
-    p4_connection = setup_server_connection(**config['server'])
+        print("Connecting to server:")
+        p4_connection = setup_server_connection(**server_values['server'])
 
-    ignored_users = gather_ignored_users(server=p4_connection, config=config)
-    
-    open_files = get_open_files_dict(p4_connection, existing_data)
-    to_be_unlocked = check_open_files(open_files, time_limit, ignored_users)
-    
-    perform_reverts(p4_connection, to_be_unlocked)
+        ignored_users = gather_ignored_users(server=p4_connection, config=server_values)
+        
+        open_files = get_open_files_dict(p4_connection, existing_data)
+        to_be_unlocked = check_open_files(open_files, time_limit, ignored_users)
+        
+        perform_reverts(p4_connection, to_be_unlocked)
 
-    log_lines = []
-    for file_path in to_be_unlocked:
-        for checkout_data in to_be_unlocked[file_path]:
-            line = '{time}: {file_path} has been force reverted from {user}@{client}.\n'.format(
-                time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"), 
-                file_path=file_path,
-                user=checkout_data['user'], 
-                client=checkout_data['client']
-            )
+        log_lines = []
+        for file_path in to_be_unlocked:
+            for checkout_data in to_be_unlocked[file_path]:
+                line = '{time}: {file_path} has been force reverted from {user}@{client}.\n'.format(
+                    time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"), 
+                    file_path=file_path,
+                    user=checkout_data['user'], 
+                    client=checkout_data['client']
+                )
 
-        log_lines.append(line)
-        if file_path in open_files:
-            del open_files[file_path]
+            log_lines.append(line)
+            if file_path in open_files:
+                del open_files[file_path]
 
-    write_log(log_lines, log_path)
+        write_log(log_lines, log_path)
 
-    write_json(open_files, data_path)
+        write_json(open_files, data_path)
 
-    line = '{time}: Auto Unlock Completed.\n'.format(
-            time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"))
-    write_log([line], log_path)
-    print("Auto Unlock Completed.")
+        line = '{time}: Auto Unlock Completed.\n'.format(
+                time=datetime.now().strftime("%a %b %d %H:%M:%S %Y"))
+        write_log([line], log_path)
+        print("Auto Unlock Completed.")
 
 
 if __name__ == "__main__":

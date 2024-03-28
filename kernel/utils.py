@@ -48,7 +48,7 @@ def set_default(obj):
     return obj
 
 
-def write_json(data_dict, output_path, sort_keys=False):
+def write_json(data_dict, output_path, sort_keys=True):
     """
     Writes a dictionary into a json file.
     """
@@ -62,8 +62,10 @@ def read_json(json_path):
     """
     Reads a json file in to a dictionary.
     """
-    with open(json_path) as json_file:
-        data_dict = json.load(json_file)
+    data_dict = {}
+    if os.path.exists(json_path):
+        with open(json_path) as json_file:
+            data_dict = json.load(json_file)
     return data_dict
 
 
