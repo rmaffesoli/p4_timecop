@@ -85,5 +85,4 @@ Upon the script running, it will first load the previous open data that was gath
 
 ## ToDo items?:
 - [X] Full Test Coverage
-- [ ] Setup scripts?
-- [ ] Compiled executables?
+- [X] Compiled executables

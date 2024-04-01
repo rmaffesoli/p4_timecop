@@ -1,0 +1,1 @@
+pyinstaller --onefile --distpath .\bin -n "p4_timecop" .\kernel\run_timecop.py
