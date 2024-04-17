@@ -5,6 +5,7 @@ import re
 import os
 from datetime import datetime, timedelta
 from P4 import P4
+import codecs
 
 
 def load_server_config(config_path="config.json"):
@@ -70,7 +71,8 @@ def read_json(json_path):
 
 
 def write_log(lines=None, file_path=''):
-    with open(file_path, "a") as outfile:
+
+    with codecs.open(file_path, "a", "utf-8") as outfile:
         outfile.writelines(lines)
 
 
